@@ -8,23 +8,26 @@ from Passwords import username,password
 
 driver = webdriver.Safari()
 
+#Possible slot times
 nine_am = 'start9_0'
 one_pm = 'start13_0'
 five_pm = 'start17_0'
 six_pm = 'start18_0'
 
+#Gets the today's date and adds 4 days to it
 def get_time():
     now = date.today()
     new_delta = now + timedelta(days=4)
     print(new_delta)
     return(str(new_delta))
 
+#Gets today's day
 def get_day():
     today = date.today().weekday()
     print(today)
     return today
 
-
+#Books a BillyB slot
 def billyb(booking_time):
     driver.get("https://apps.dur.ac.uk/bookings/book/time")
     time.sleep(2)
@@ -43,6 +46,7 @@ def billyb(booking_time):
     driver.find_element_by_id ('room6').click()
     driver.find_element_by_xpath('//*[@id="content"]/div/div/div[4]/form/div/button').click()
     time.sleep(4)
+    #Get rid of this loop if you don't want the page to refresh until a slot is available
     while True:
         if len(driver.find_elements_by_id(booking_time)) != 0:
             break
@@ -55,7 +59,8 @@ def billyb(booking_time):
     driver.find_element_by_id ('terms').click()
     driver.find_element_by_xpath('//*[@id="content"]/div/div/div[6]/form/div/button').click()
     time.sleep(5)
-
+    
+#Books a TLC slot
 def tlc(booking_time):
     driver.get("https://apps.dur.ac.uk/bookings/book/time")
     driver.execute_script("window.open('');")
@@ -77,6 +82,7 @@ def tlc(booking_time):
     driver.find_element_by_id ('room26').click()
     driver.find_element_by_xpath('//*[@id="content"]/div/div/div[4]/form/div/button').click()
     time.sleep(4)
+    #Get rid of this loop if you don't want the page to refresh until a slot is available
     while True:
         if len(driver.find_elements_by_id(booking_time)) != 0:
             break
@@ -91,7 +97,8 @@ def tlc(booking_time):
     time.sleep(5)
 
 
-
+#Books BillyB on weekdays and TLC on weekends
+#Change function parameters for different times
 if get_day() == 1 or get_day() == 2:
     tlc(one_pm)
 else:
