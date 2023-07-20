@@ -1,0 +1,5 @@
+loguru==0.7.0
+pretty-errors==1.2.25
+python-dotenv==1.0.0
+PyVirtualDisplay==3.0
+selenium==4.10.0
