@@ -5,13 +5,14 @@ import time
 from datetime import datetime, timedelta
 
 import pretty_errors
-from components import BrowserComponents
 from dotenv import load_dotenv
 from loguru import logger
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.safari.options import Options
+
+from components import BrowserComponents
 
 options = Options()
 options.add_argument("--disable-blink-features=AutomationControlled")
@@ -29,7 +30,6 @@ BADMINTON_BKG_LINK = "BADMINTON BKG"
 
 BOOK_NOW_BUTTON_ID = "submit1"
 
-EMAIL = "test"
 EMAIL_INPUT_ID = "txtEmail"
 
 logger.remove(0)
@@ -41,8 +41,11 @@ def argparser():
     parser.add_argument(
         "start_time", type=int, help="The start time of the booking in 24hr format"
     )
+    parser.add_argument(
+        "--email", type=str, help="The email required for the booking confirmation"
+    )
     args = parser.parse_args()
-    return args.start_time
+    return args.start_time, args.email
 
 
 def login():
@@ -109,7 +112,7 @@ def enter_email_and_book(email):
 
 
 if __name__ == "__main__":
-    start_time = argparser()
+    start_time, email = argparser()
 
     driver = webdriver.Chrome()
     browserComponents = BrowserComponents(driver)
@@ -119,6 +122,6 @@ if __name__ == "__main__":
     navigateToBookingPage()
     court = choose_court(start_time)
     choose_time_and_submit(start_time, court)
-    enter_email_and_book(EMAIL)
+    enter_email_and_book(email)
 
     time.sleep(2)
