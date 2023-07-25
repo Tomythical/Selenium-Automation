@@ -10,12 +10,11 @@ from loguru import logger
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
-from selenium.webdriver.safari.options import Options
-
+from selenium.webdriver.chrome.options import Options
+from selenium.webdriver import ActionChains
+from pyvirtualdisplay import Display
 from components import BrowserComponents
 
-options = Options()
-options.add_argument("--disable-blink-features=AutomationControlled")
 
 load_dotenv()
 USERNAME = os.environ.get("USERNAME")
@@ -33,8 +32,10 @@ BOOK_NOW_BUTTON_ID = "submit1"
 EMAIL_INPUT_ID = "txtEmail"
 
 logger.remove(0)
-logger.add(sys.stderr, level="INFO")
+logger.add(sys.stderr, level="ERROR")
 
+display = Display(visible=0, size=(800, 600))
+display.start()
 
 def argparser():
     parser = argparse.ArgumentParser()
@@ -110,18 +111,21 @@ def enter_email_and_book(email):
     browserComponents.findInputAndSendKeys(By.ID, EMAIL_INPUT_ID, email)
     # browserComponents.findElementAndClick(By.ID, BOOK_NOW_BUTTON_ID)
 
+    time.sleep(5)
 
 if __name__ == "__main__":
     start_time, email = argparser()
 
-    driver = webdriver.Chrome()
+    options = Options()
+    options.add_argument('--headless')
+
+    driver = webdriver.Chrome(options=options)
     browserComponents = BrowserComponents(driver)
     driver.maximize_window()
     driver.get("https://www.sswimclub.org.sg/MembersWeb/main/loginuser.asp")
+
     login()
     navigateToBookingPage()
     court = choose_court(start_time)
     choose_time_and_submit(start_time, court)
     enter_email_and_book(email)
-
-    time.sleep(2)
