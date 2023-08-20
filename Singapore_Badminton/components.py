@@ -60,10 +60,12 @@ class BrowserComponents:
             )
             self.driver.quit()
 
-    def findInputByAttributeAndClick(self, attribute: str, value: str):
+    def findElementByAttributeAndClick(
+        self, element_type: str, attribute: str, value: str
+    ):
         try:
             self.driver.find_element(
-                By.XPATH, f"//input[@{attribute}='{value}']"
+                By.XPATH, f"//{element_type}[@{attribute}='{value}']"
             ).click()
         except NoSuchElementException:
             logger.error(
