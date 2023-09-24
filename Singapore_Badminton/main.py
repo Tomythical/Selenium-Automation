@@ -7,14 +7,14 @@ from datetime import datetime, timedelta
 import pretty_errors
 from dotenv import load_dotenv
 from loguru import logger
+from pyvirtualdisplay import Display
 from selenium import webdriver
+from selenium.webdriver import ActionChains
+from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
-from selenium.webdriver.chrome.options import Options
-from selenium.webdriver import ActionChains
-from pyvirtualdisplay import Display
-from components import BrowserComponents
 
+from components import BrowserComponents
 
 load_dotenv()
 USERNAME = os.environ.get("USERNAME")
@@ -31,6 +31,9 @@ DATE_PICKER_NAME = "dday"
 BOOK_NOW_BUTTON_ID = "submit1"
 
 EMAIL_INPUT_ID = "txtEmail"
+
+eightDaysDate = (datetime.today() + timedelta(days=8)).strftime("%-d %b %Y")
+tomorrowDate = (datetime.today() + timedelta(days=1)).strftime("%-d %b %Y")
 
 logger.remove(0)
 logger.add(sys.stderr, level="DEBUG")
@@ -79,18 +82,30 @@ def choose_date_and_court(start_time):
     logger.info("Choosing date from dropdown")
     browserComponents.waitForElementToBeVisible(By.ID, BOOK_NOW_BUTTON_ID, 2)
     browserComponents.findElementAndClick(By.NAME, DATE_PICKER_NAME)
-    sixDaysDate = datetime.now() + timedelta(days=6)
-    nextWeekDate = datetime.now() + timedelta(weeks=1)
 
-    sixDaysDateFormatted = sixDaysDate.strftime("%-d %b %Y")
-    nextWeekDateFormatted = nextWeekDate.strftime("%-d %b %Y")
+    logger.debug(f"Tomorrow Date: {tomorrowDate}")
+    logger.debug(f"8 days ahead: {eightDaysDate}")
 
-    logger.debug(f"6 days ahead: {sixDaysDateFormatted}")
-    logger.debug(f"Next week: {nextWeekDateFormatted}")
-    logger.info(f"Clicking date: {nextWeekDateFormatted}")
-    browserComponents.findElementByAttributeAndClick(
-        "option", "value", nextWeekDateFormatted
-    )
+    logger.info(f" Attempting to click date: {eightDaysDate}")
+    wait_time = 0
+    while datetime.today().strftime("%-d %b %Y") != tomorrowDate:
+        if wait_time == 10:
+            logger.info("Date not found after 2 minutes")
+            driver.quit()
+            exit(1)
+
+        logger.debug(
+            f"Time: {datetime.today().strftime('%-d %b %Y')}. Wait time = {wait_time}"
+        )
+
+        time.sleep(1)
+        wait_time += 1
+
+    driver.refresh()
+    browserComponents.waitForElementToBeVisible(By.ID, BOOK_NOW_BUTTON_ID, 2)
+    browserComponents.findElementAndClick(By.NAME, DATE_PICKER_NAME)
+    browserComponents.findElementByAttributeAndClick("option", "value", eightDaysDate)
+
     browserComponents.waitForElementToBeVisible(By.ID, BOOK_NOW_BUTTON_ID, 2)
 
     logger.info("Choosing Court")
