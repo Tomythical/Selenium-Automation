@@ -89,7 +89,7 @@ def choose_date_and_court(start_time):
     logger.info(f" Attempting to click date: {eightDaysDate}")
     wait_time = 0
     while datetime.today().strftime("%-d %b %Y") != tomorrowDate:
-        if wait_time == 10:
+        if wait_time == 120:
             logger.info("Date not found after 2 minutes")
             driver.quit()
             exit(1)
