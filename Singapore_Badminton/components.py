@@ -21,6 +21,17 @@ class BrowserComponents:
             )
             self.driver.quit()
 
+    def isElementByAttributeVisible(
+        self, element_type: str, attribute: str, value: str
+    ):
+        try:
+            self.driver.find_element(
+                By.XPATH, f"//{element_type}[@{attribute}='{value}']"
+            )
+            return True
+        except NoSuchElementException:
+            return False
+
     def findInputAndSendKeys(self, locator_type: By, locator: str, message: str):
         try:
             self.driver.find_element(locator_type, locator).send_keys(message)
