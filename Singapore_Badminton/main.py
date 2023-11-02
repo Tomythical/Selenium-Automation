@@ -32,8 +32,8 @@ BOOK_NOW_BUTTON_ID = "submit1"
 
 EMAIL_INPUT_ID = "txtEmail"
 
-eightDaysDate = (datetime.today() + timedelta(days=8)).strftime("%-d %b %Y")
-tomorrowDate = (datetime.today() + timedelta(days=1)).strftime("%-d %b %Y")
+singapore_currentdateandtime = datetime.now() + timedelta(hours=8)
+singapore_date_plus_7_days = (singapore_currentdateandtime + timedelta(days=7)).strftime("%-d %b %Y")
 
 logger.remove(0)
 logger.add(sys.stderr, level="DEBUG")
@@ -70,7 +70,6 @@ def navigateToBookingPage():
     browserComponents.waitForElementToBeVisible(By.LINK_TEXT, BADMINTON_BKG_LINK, 3)
     browserComponents.findElementAndClick(By.LINK_TEXT, BADMINTON_BKG_LINK)
 
-    singapore_currentdateandtime = datetime.now() + timedelta(hours=7)
     currentDay = singapore_currentdateandtime.strftime("%-d")
     logger.debug(f"Today's date in Singapore: {currentDay}")
 
@@ -83,28 +82,31 @@ def choose_date_and_court(start_time):
     browserComponents.waitForElementToBeVisible(By.ID, BOOK_NOW_BUTTON_ID, 2)
     browserComponents.findElementAndClick(By.NAME, DATE_PICKER_NAME)
 
-    logger.debug(f"Tomorrow Date: {tomorrowDate}")
-    logger.debug(f"8 days ahead: {eightDaysDate}")
+    singapore_currentdateandtime = datetime.now() + timedelta(hours=8)
+    logger.debug(f"Date in Singapore: {singapore_currentdateandtime}")
+    logger.debug(f"7 days ahead from Singapore: {singapore_date_plus_7_days}")
 
-    logger.info(f" Attempting to click date: {eightDaysDate}")
+    logger.debug("Sleeping for 30 seconds")
+    time.sleep(30)
+
+    logger.info(f" Attempting to click date: {singapore_date_plus_7_days}")
     wait_time = 0
-    while datetime.today().strftime("%-d %b %Y") != tomorrowDate:
+
+    while str(singapore_currentdateandtime.strftime("%H")) != "07":
+        logger.debug(f"Time: {singapore_currentdateandtime.strftime('%H:%M:%S')}. Wait time = {wait_time}")
         if wait_time == 120:
             logger.info("Date not found after 2 minutes")
             driver.quit()
             exit(1)
 
-        logger.debug(
-            f"Time: {datetime.today().strftime('%-d %b %Y')}. Wait time = {wait_time}"
-        )
-
         time.sleep(1)
+        singapore_currentdateandtime = datetime.now() + timedelta(hours=8)
         wait_time += 1
 
     driver.refresh()
     browserComponents.waitForElementToBeVisible(By.ID, BOOK_NOW_BUTTON_ID, 2)
     browserComponents.findElementAndClick(By.NAME, DATE_PICKER_NAME)
-    browserComponents.findElementByAttributeAndClick("option", "value", eightDaysDate)
+    browserComponents.findElementByAttributeAndClick("option", "value", singapore_date_plus_7_days)
 
     browserComponents.waitForElementToBeVisible(By.ID, BOOK_NOW_BUTTON_ID, 2)
 
