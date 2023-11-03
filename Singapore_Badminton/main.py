@@ -7,12 +7,9 @@ from datetime import datetime, timedelta
 import pretty_errors
 from dotenv import load_dotenv
 from loguru import logger
-from pyvirtualdisplay import Display
 from selenium import webdriver
-from selenium.webdriver import ActionChains
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.by import By
-from selenium.webdriver.common.keys import Keys
 
 from components import BrowserComponents
 
@@ -125,7 +122,7 @@ def choose_date_and_court(start_time):
 
 
 def choose_time_and_submit(start_time: int, court: int):
-    newtWeekDate = datetime.now() + timedelta(weeks=1)
+    newtWeekDate = singapore_currentdateandtime + timedelta(weeks=1)
     nextWeekFormatted = newtWeekDate.strftime("%-d %b %Y")
     BOOKING_TABLE_CHECKBOX_VALUE = f"{str(start_time).zfill(2)}:00,{str(start_time+1).zfill(2)}:00,BC{str(court)},{nextWeekFormatted},B"
 
@@ -143,6 +140,8 @@ def enter_email_and_book(email, dry_run):
     if not dry_run:
         logger.info(f"Sending email: {email} and booking")
         browserComponents.findElementAndClick(By.ID, BOOK_NOW_BUTTON_ID)
+    else:
+        logger.debug("Reached email screen. Not sending email")
 
 if __name__ == "__main__":
     start_time, email, dry_run = argparser()
