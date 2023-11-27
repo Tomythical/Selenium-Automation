@@ -4,12 +4,13 @@ import sys
 import time
 from datetime import datetime, timedelta
 
-import pretty_errors
 from dotenv import load_dotenv
 from loguru import logger
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.common.by import By
+from webdriver_manager.chrome import ChromeDriverManager
 
 from components import BrowserComponents
 
@@ -148,8 +149,10 @@ if __name__ == "__main__":
 
     options = Options()
     options.add_argument('--headless')
+    options.add_argument('--no-sandbox')
+    options.add_argument('--disable-dev-shm-usage')
 
-    driver = webdriver.Chrome(options=options)
+    driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=options)
     browserComponents = BrowserComponents(driver)
     driver.maximize_window()
     driver.get("https://www.sswimclub.org.sg/MembersWeb/main/loginuser.asp")
