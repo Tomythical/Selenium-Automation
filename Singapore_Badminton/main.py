@@ -4,6 +4,7 @@ import sys
 import time
 from datetime import datetime, timedelta
 
+import pytz
 from dotenv import load_dotenv
 from loguru import logger
 from selenium import webdriver
@@ -30,7 +31,8 @@ BOOK_NOW_BUTTON_ID = "submit1"
 
 EMAIL_INPUT_ID = "txtEmail"
 
-singapore_currentdateandtime = datetime.now() + timedelta(hours=8)
+singapore_timezone = pytz.timezone("Asia/Singapore")
+singapore_currentdateandtime = datetime.now(singapore_timezone)
 singapore_date_plus_7_days = (singapore_currentdateandtime + timedelta(days=7)).strftime("%-d %b %Y")
 
 logger.remove(0)
@@ -80,12 +82,12 @@ def choose_date_and_court(start_time):
     browserComponents.waitForElementToBeVisible(By.ID, BOOK_NOW_BUTTON_ID, 2)
     browserComponents.findElementAndClick(By.NAME, DATE_PICKER_NAME)
 
-    singapore_currentdateandtime = datetime.now() + timedelta(hours=8)
+    singapore_currentdateandtime = datetime.now(singapore_timezone)
     logger.debug(f"Date in Singapore: {singapore_currentdateandtime}")
     logger.debug(f"7 days ahead from Singapore: {singapore_date_plus_7_days}")
 
-    logger.debug("Sleeping for 30 seconds")
-    time.sleep(30)
+    # logger.debug("Sleeping for 30 seconds")
+    # time.sleep(30)
 
     logger.info(f" Attempting to click date: {singapore_date_plus_7_days}")
     wait_time = 0
@@ -98,7 +100,7 @@ def choose_date_and_court(start_time):
             exit(1)
 
         time.sleep(1)
-        singapore_currentdateandtime = datetime.now() + timedelta(hours=8)
+        singapore_currentdateandtime = datetime.now(singapore_timezone)
         wait_time += 1
 
     driver.refresh()
@@ -162,3 +164,4 @@ if __name__ == "__main__":
     court = choose_date_and_court(start_time)
     choose_time_and_submit(start_time, court)
     enter_email_and_book(email, dry_run)
+    logger.info("Booking Finished")
