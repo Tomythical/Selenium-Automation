@@ -33,7 +33,9 @@ EMAIL_INPUT_ID = "txtEmail"
 
 singapore_timezone = pytz.timezone("Asia/Singapore")
 singapore_currentdateandtime = datetime.now(singapore_timezone)
-singapore_date_plus_7_days = (singapore_currentdateandtime + timedelta(days=7)).strftime("%-d %b %Y")
+singapore_date_plus_7_days = (
+    singapore_currentdateandtime + timedelta(days=7)
+).strftime("%-d %b %Y")
 
 logger.remove(0)
 logger.add(sys.stderr, level="DEBUG")
@@ -93,7 +95,9 @@ def choose_date_and_court(start_time):
     wait_time = 0
 
     while str(singapore_currentdateandtime.strftime("%H")) != "07":
-        logger.debug(f"Time: {singapore_currentdateandtime.strftime('%H:%M:%S')}. Wait time = {wait_time}")
+        logger.debug(
+            f"Time: {singapore_currentdateandtime.strftime('%H:%M:%S')}. Wait time = {wait_time}"
+        )
         if wait_time == 120:
             logger.info("Date not found after 2 minutes")
             driver.quit()
@@ -106,7 +110,9 @@ def choose_date_and_court(start_time):
     driver.refresh()
     browserComponents.waitForElementToBeVisible(By.ID, BOOK_NOW_BUTTON_ID, 2)
     browserComponents.findElementAndClick(By.NAME, DATE_PICKER_NAME)
-    browserComponents.findElementByAttributeAndClick("option", "value", singapore_date_plus_7_days)
+    browserComponents.findElementByAttributeAndClick(
+        "option", "value", singapore_date_plus_7_days
+    )
 
     browserComponents.waitForElementToBeVisible(By.ID, BOOK_NOW_BUTTON_ID, 2)
 
@@ -146,18 +152,23 @@ def enter_email_and_book(email, dry_run):
     else:
         logger.debug("Reached email screen. Not sending email")
 
+
 if __name__ == "__main__":
     start_time, email, dry_run = argparser()
 
     options = Options()
-    options.add_argument('--headless')
-    options.add_argument('--no-sandbox')
-    options.add_argument('--disable-dev-shm-usage')
+    options.add_argument("--headless")
+    options.add_argument("--no-sandbox")
+    options.add_argument("--disable-dev-shm-usage")
 
-    driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=options)
+    driver = webdriver.Chrome(
+        service=Service(ChromeDriverManager().install()), options=options
+    )
     browserComponents = BrowserComponents(driver)
     driver.maximize_window()
-    driver.get("https://www.sswimclub.org.sg/MembersWeb/main/loginuser.asp")
+    driver.get(
+        "https://membership.sswimclub.org.sg/MembersWeb/main/loginuser.asp?errmsg=2"
+    )
 
     login()
     navigateToBookingPage()

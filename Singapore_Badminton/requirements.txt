@@ -1,6 +1,6 @@
-loguru==0.7.0
-python-dotenv==1.0.0
+loguru==0.7.2
+python-dotenv==1.0.1
 PyVirtualDisplay==3.0
-selenium==4.10.0
-webdriver-manager==4.0.0
-pytz==2023.3.post1
+selenium==4.23.1
+webdriver-manager==4.0.2
+pytz==2024.1
