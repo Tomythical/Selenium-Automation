@@ -30,6 +30,7 @@ DATE_PICKER_NAME = "dday"
 BOOK_NOW_BUTTON_ID = "submit1"
 
 EMAIL_INPUT_ID = "txtEmail"
+PRINT_THIS_PAGE_LINK = "Click to Print This Page"
 
 singapore_timezone = pytz.timezone("Asia/Singapore")
 singapore_currentdateandtime = datetime.now(singapore_timezone)
@@ -131,8 +132,8 @@ def choose_date_and_court(start_time):
 
 
 def choose_time_and_submit(start_time: int, court: int):
-    newtWeekDate = singapore_currentdateandtime + timedelta(weeks=1)
-    nextWeekFormatted = newtWeekDate.strftime("%-d %b %Y")
+    nextWeekDate = singapore_currentdateandtime + timedelta(weeks=1)
+    nextWeekFormatted = nextWeekDate.strftime("%-d %b %Y")
     BOOKING_TABLE_CHECKBOX_VALUE = f"{str(start_time).zfill(2)}:00,{str(start_time+1).zfill(2)}:00,BC{str(court)},{nextWeekFormatted},B"
 
     browserComponents.findElementByAttributeAndClick(
@@ -149,6 +150,10 @@ def enter_email_and_book(email, dry_run):
     if not dry_run:
         logger.info(f"Sending email: {email} and booking")
         browserComponents.findElementAndClick(By.ID, BOOK_NOW_BUTTON_ID)
+        browserComponents.waitForElementToBeVisible(
+            By.LINK_TEXT, PRINT_THIS_PAGE_LINK, 120
+        )
+        logger.info("Booking complete")
     else:
         logger.debug("Reached email screen. Not sending email")
 
