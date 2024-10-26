@@ -151,7 +151,7 @@ def enter_email_and_book(email, dry_run):
         logger.info(f"Sending email: {email} and booking")
         browserComponents.findElementAndClick(By.ID, BOOK_NOW_BUTTON_ID)
         browserComponents.waitForElementToBeVisible(
-            By.LINK_TEXT, PRINT_THIS_PAGE_LINK, 120
+            By.LINK_TEXT, PRINT_THIS_PAGE_LINK, 240
         )
         logger.info("Booking complete")
     else:
