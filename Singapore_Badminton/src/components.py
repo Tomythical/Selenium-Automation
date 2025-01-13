@@ -13,11 +13,33 @@ class BrowserComponents:
     def waitForElementToBeVisible(self, locator_type: By, locator: str, timeout: int):
         try:
             WebDriverWait(self.driver, timeout).until(
-                EC.presence_of_element_located((locator_type, locator))
+                EC.visibility_of_element_located((locator_type, locator))
             )
         except NoSuchElementException:
             logger.error(
                 f"Locator: {locator} could not be found using locator type: {locator_type}"
+            )
+            self.driver.quit()
+
+    def waitForElementToBeClickable(self, locator_type: By, locator: str, timeout: int):
+        try:
+            WebDriverWait(self.driver, timeout).until(
+                EC.element_to_be_clickable((locator_type, locator))
+            )
+        except NoSuchElementException:
+            logger.error(
+                f"Locator: {locator} could not be found using locator type: {locator_type}"
+            )
+            self.driver.quit()
+
+    def waitForElementToDisappear(self, locator_type: By, locator: str, timeout: int):
+        try:
+            WebDriverWait(self.driver, timeout).until(
+                EC.invisibility_of_element_located((locator_type, locator))
+            )
+        except NoSuchElementException:
+            logger.error(
+                f"Locator: {locator} could not be found invisible using locator type: {locator_type}"
             )
             self.driver.quit()
 
@@ -30,9 +52,27 @@ class BrowserComponents:
             )
             self.driver.quit()
 
+    def findElement(self, locator_type: By, locator: str):
+        try:
+            self.driver.find_element(locator_type, locator)
+        except NoSuchElementException:
+            logger.error(
+                f"Locator: {locator} could not be found using locator type: {locator_type}"
+            )
+            self.driver.quit()
+
     def findElementAndClick(self, locator_type: By, locator: str):
         try:
             self.driver.find_element(locator_type, locator).click()
+        except NoSuchElementException:
+            logger.error(
+                f"Locator: {locator} could not be found using locator type: {locator_type}"
+            )
+            self.driver.quit()
+
+    def findElementAndGetText(self, locator_type: By, locator: str) -> str:
+        try:
+            return self.driver.find_element(locator_type, locator).text
         except NoSuchElementException:
             logger.error(
                 f"Locator: {locator} could not be found using locator type: {locator_type}"
