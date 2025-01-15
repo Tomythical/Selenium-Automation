@@ -10,6 +10,7 @@ from selenium.common.exceptions import (
     ElementClickInterceptedException,
     ElementNotInteractableException,
     StaleElementReferenceException,
+    TimeoutException,
 )
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.chrome.service import Service
@@ -111,7 +112,9 @@ def navigate_to_date(skip_next_day, dry_run):
             wait_time += 1
             continue
 
-        if utils.parse_server_clock(clock_text).hour > 12:  # If before midnight
+        clock_datetime = utils.parse_server_clock(clock_text)
+        if 0 <= clock_datetime.hour <= 1:  # If before midnight
+            logger.info(f"It is now past midnight: {clock_datetime}")
             break
 
         if wait_time >= 180:
@@ -119,9 +122,7 @@ def navigate_to_date(skip_next_day, dry_run):
             driver.quit()
             exit(1)
 
-        logger.debug(
-            f"Local time: {browserComponents.findElementAndGetText(By.ID, CLOCK_ID)}. Wait time = {wait_time}"
-        )
+        logger.debug(f"Local time: {clock_datetime}. Wait time = {wait_time}")
         time.sleep(1)
         wait_time += 1
 
@@ -141,22 +142,30 @@ def choose_court():
     time.sleep(1)
     tableRow = start_time - 7
     courtElements = browserComponents.getElementsInRow(TABLE_ID, tableRow)
-    print(len(courtElements))
     preference_order = (4, 5, 3, 1, 2, 6)
     for court in preference_order:
-        if courtElements[court].text != "":
-            logger.debug(f"Court {court} is not available: {courtElements[court].text}")
-        else:
-            logger.debug(f"Court {court} is available")
-            try:
-                logger.debug(f"Clicking table id: t{tableRow}c{court-1}")
-                browserComponents.waitForElementToBeClickable(
-                    By.ID, f"t{tableRow}c{court-1}", 5
+        try:
+            if courtElements[court].text != "":
+                logger.debug(
+                    f"Court {court} is not available: {courtElements[court].text}"
                 )
-                browserComponents.findElementAndClick(By.ID, f"t{tableRow}c{court-1}")
-                return
-            except ElementNotInteractableException:
-                logger.debug(f"Court {court} has no clickable element")
+            else:
+                logger.debug(f"Court {court} is available")
+                try:
+                    logger.debug(f"Clicking table id: t{tableRow}c{court-1}")
+                    browserComponents.waitForElementToBeClickable(
+                        By.ID, f"t{tableRow}c{court-1}", 5
+                    )
+                    browserComponents.findElementAndClick(
+                        By.ID, f"t{tableRow}c{court-1}"
+                    )
+                    return
+                except ElementNotInteractableException:
+                    logger.warning(f"Court {court} has no clickable element")
+                except TimeoutException:
+                    logger.warning(f"Timeout: Court {court} is not available")
+        except IndexError:
+            logger.warning(f"IndexError: Court {court} is not available")
 
     logger.error("No courts available")
     logger.info("Quitting driver")
