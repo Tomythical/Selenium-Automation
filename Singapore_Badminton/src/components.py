@@ -52,14 +52,16 @@ class BrowserComponents:
             )
             self.driver.quit()
 
-    def findElement(self, locator_type: By, locator: str):
+    def isElementPresent(self, locator_type: By, locator: str) -> bool:
         try:
             self.driver.find_element(locator_type, locator)
         except NoSuchElementException:
-            logger.error(
+            logger.debug(
                 f"Locator: {locator} could not be found using locator type: {locator_type}"
             )
-            self.driver.quit()
+            return False
+
+        return True
 
     def findElementAndClick(self, locator_type: By, locator: str):
         try:

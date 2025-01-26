@@ -2,6 +2,7 @@ import argparse
 import os
 import sys
 import time
+from datetime import time as t
 
 from dotenv import load_dotenv
 from loguru import logger
@@ -41,11 +42,17 @@ NEXT_DAY_BUTTON_XPATH = (
     "//*[@id='_activities_WAR_northstarportlet_:activityForm:j_idt102']"
 )
 
+PREVIOUS_DAY_BUTTON_XPATH = (
+    "//*[@id='_activities_WAR_northstarportlet_:activityForm:j_idt81']"
+)
+
 CLOCK_ID = "_activities_WAR_northstarportlet_\:activityForm\:j_idt70"
 
 TABLE_ID = "_activities_WAR_northstarportlet_\:activityForm\:slots_data"
 
 BOOKING_BUTTON_ID = "_activities_WAR_northstarportlet_\:activityForm\:j_idt1196"
+
+UNAVAILABLE_BOOKING_OVERLAY = "advance-booking-overlay"
 
 logger.remove(0)
 logger.add(sys.stderr, level="DEBUG")
@@ -113,7 +120,10 @@ def navigate_to_date(skip_next_day, dry_run):
             continue
 
         clock_datetime = utils.parse_server_clock(clock_text)
-        if 0 <= clock_datetime.hour <= 1:  # If before midnight
+        if dry_run:
+            clock_datetime = t(0, 2)
+
+        if t(0, 1) <= clock_datetime <= t(0, 59):  # If after midnight
             logger.info(f"It is now past midnight: {clock_datetime}")
             break
 
@@ -131,8 +141,33 @@ def navigate_to_date(skip_next_day, dry_run):
 
     logger.info("Clicking Next Day")
     browserComponents.waitForElementToBeClickable(By.XPATH, NEXT_DAY_BUTTON_XPATH, 20)
+    time.sleep(2)
     browserComponents.findElementAndClick(By.XPATH, NEXT_DAY_BUTTON_XPATH)
     time.sleep(2)
+
+    attempts = 0
+    while (
+        browserComponents.isElementPresent(By.CLASS_NAME, UNAVAILABLE_BOOKING_OVERLAY)
+        and attempts < 3
+    ):
+        logger.debug(f"{attempts=}")
+        logger.debug("Booking screen unavailable")
+        browserComponents.waitForElementToBeClickable(
+            By.XPATH, PREVIOUS_DAY_BUTTON_XPATH, 20
+        )
+        browserComponents.findElementAndClick(By.XPATH, PREVIOUS_DAY_BUTTON_XPATH)
+        time.sleep(2)
+        browserComponents.waitForElementToBeClickable(
+            By.XPATH, NEXT_DAY_BUTTON_XPATH, 20
+        )
+        browserComponents.findElementAndClick(By.XPATH, NEXT_DAY_BUTTON_XPATH)
+        time.sleep(2)
+        attempts += 1
+
+    if attempts >= 3:
+        logger.info("Booking screen never went away")
+        driver.quit()
+        exit(1)
 
 
 def choose_court():
@@ -164,6 +199,8 @@ def choose_court():
                     logger.warning(f"Court {court} has no clickable element")
                 except TimeoutException:
                     logger.warning(f"Timeout: Court {court} is not available")
+                except ElementClickInterceptedException as e:
+                    logger.warning(f"Element click intercepted: {e}")
         except IndexError:
             logger.warning(f"IndexError: Court {court} is not available")
 
@@ -193,9 +230,9 @@ if __name__ == "__main__":
     start_time, dry_run, skip_next_day = argparser()
 
     options = Options()
-    options.add_argument("--headless")
-    options.add_argument("--no-sandbox")
-    options.add_argument("--disable-dev-shm-usage")
+    # options.add_argument("--headless")
+    # options.add_argument("--no-sandbox")
+    # options.add_argument("--disable-dev-shm-usage")
 
     driver = webdriver.Chrome(
         service=Service(ChromeDriverManager().install()), options=options
