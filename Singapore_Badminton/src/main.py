@@ -123,7 +123,7 @@ def navigate_to_date(skip_next_day, dry_run):
         if dry_run:
             clock_datetime = t(0, 2)
 
-        if t(0, 1) <= clock_datetime <= t(0, 59):  # If after midnight
+        if t(7, 0) <= clock_datetime <= t(7, 59):  # If after midnight
             logger.info(f"It is now past midnight: {clock_datetime}")
             break
 
