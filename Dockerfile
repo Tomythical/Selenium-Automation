@@ -1,34 +1,45 @@
-FROM --platform=linux/amd64 python:3.11-slim-buster as builder
+# Use a minimal base image
+FROM --platform=linux/amd64 python:3.11-slim
 
-RUN pip install poetry==1.8.3
+# Set environment variables early to optimize caching
+ENV POETRY_VERSION=1.8.3 \
+  POETRY_NO_INTERACTION=1 \
+  POETRY_VIRTUALENVS_IN_PROJECT=1 \
+  POETRY_VIRTUALENVS_CREATE=1 \
+  POETRY_CACHE_DIR=/tmp/poetry_cache \
+  VIRTUAL_ENV=/app/.venv \
+  PATH="/app/.venv/bin:$PATH"
 
-RUN apt-get update && apt-get install -y wget unzip && \
-    wget https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb
+# Install dependencies (use --no-install-recommends to reduce image size)
+RUN apt-get update && apt-get install -y --no-install-recommends \
+  wget \
+  unzip \
+  curl \
+  && wget -qO /tmp/google-chrome.deb https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb \
+  && apt-get install -y --no-install-recommends /tmp/google-chrome.deb \
+  && rm -rf /tmp/google-chrome.deb \
+  && apt-get clean \
+  && rm -rf /var/lib/apt/lists/*
 
-ENV POETRY_NO_INTERACTION=1 \
-    POETRY_VIRTUALENVS_IN_PROJECT=1 \
-    POETRY_VIRTUALENVS_CREATE=1 \
-    POETRY_CACHE_DIR=/tmp/poetry_cache
+# Install Poetry
+RUN pip install --no-cache-dir "poetry==$POETRY_VERSION"
 
+# Set working directory
 WORKDIR /app
 
+# Copy only necessary files first (to leverage Docker's cache)
 COPY pyproject.toml poetry.lock ./
 
-RUN poetry install --no-root && rm -rf $POETRY_CACHE_DIR
+# Install dependencies separately before adding the source code
+RUN poetry install --no-root --no-cache
 
-FROM --platform=linux/amd64 python:3.11-slim-buster as runtime
+# Copy source code
+COPY src/ ./src
 
-ENV VIRTUAL_ENV=/app/.venv \
-    PATH="/app/.venv/bin:$PATH"
+# Use a non-root user for security
+RUN useradd -m appuser && chown -R appuser:appuser /app
+USER appuser
 
-COPY --from=builder ${VIRTUAL_ENV} ${VIRTUAL_ENV}
-
-COPY --from=builder google-chrome-stable_current_amd64.deb .
-
-RUN apt-get update && apt install -y ./google-chrome-stable_current_amd64.deb && \
-    rm google-chrome-stable_current_amd64.deb && \
-    apt-get clean
-
-COPY  src/ ./src
-
+# Set entrypoint
 ENTRYPOINT [ "python", "src/main.py"]
+
