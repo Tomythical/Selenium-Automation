@@ -38,13 +38,15 @@ LOGIN_SUBMIT_BUTTON_XPATH = (
 NEXT_WEEK_BUTTON_XPATH = (
     "//*[@id='_activities_WAR_northstarportlet_:activityForm:j_idt100']"
 )
+
+PREVIOUS_WEEK_BUTTON_XPATH = (
+    "//*[@id='_activities_WAR_northstarportlet_:activityForm:j_idt79']"
+)
+
 NEXT_DAY_BUTTON_XPATH = (
     "//*[@id='_activities_WAR_northstarportlet_:activityForm:j_idt102']"
 )
 
-PREVIOUS_DAY_BUTTON_XPATH = (
-    "//*[@id='_activities_WAR_northstarportlet_:activityForm:j_idt81']"
-)
 
 CLOCK_ID = "_activities_WAR_northstarportlet_\:activityForm\:j_idt70"
 
@@ -121,7 +123,7 @@ def navigate_to_date(skip_next_day, dry_run):
 
         clock_datetime = utils.parse_server_clock(clock_text)
         if dry_run:
-            clock_datetime = t(0, 2)
+            clock_datetime = t(7, 0)
 
         if t(7, 0) <= clock_datetime <= t(7, 59):  # If after midnight
             logger.info(f"It is now past midnight: {clock_datetime}")
@@ -139,11 +141,11 @@ def navigate_to_date(skip_next_day, dry_run):
     if skip_next_day or dry_run:
         return
 
-    logger.info("Clicking Next Day")
-    browserComponents.waitForElementToBeClickable(By.XPATH, NEXT_DAY_BUTTON_XPATH, 20)
-    time.sleep(2)
-    browserComponents.findElementAndClick(By.XPATH, NEXT_DAY_BUTTON_XPATH)
-    time.sleep(2)
+    # logger.info("Clicking Next Day")
+    # browserComponents.waitForElementToBeClickable(By.XPATH, NEXT_DAY_BUTTON_XPATH, 20)
+    # time.sleep(2)
+    # browserComponents.findElementAndClick(By.XPATH, NEXT_DAY_BUTTON_XPATH)
+    # time.sleep(2)
 
     attempts = 0
     while (
@@ -153,14 +155,14 @@ def navigate_to_date(skip_next_day, dry_run):
         logger.debug(f"{attempts=}")
         logger.debug("Booking screen unavailable")
         browserComponents.waitForElementToBeClickable(
-            By.XPATH, PREVIOUS_DAY_BUTTON_XPATH, 20
+            By.XPATH, PREVIOUS_WEEK_BUTTON_XPATH, 20
         )
-        browserComponents.findElementAndClick(By.XPATH, PREVIOUS_DAY_BUTTON_XPATH)
+        browserComponents.findElementAndClick(By.XPATH, PREVIOUS_WEEK_BUTTON_XPATH)
         time.sleep(2)
         browserComponents.waitForElementToBeClickable(
-            By.XPATH, NEXT_DAY_BUTTON_XPATH, 20
+            By.XPATH, NEXT_WEEK_BUTTON_XPATH, 20
         )
-        browserComponents.findElementAndClick(By.XPATH, NEXT_DAY_BUTTON_XPATH)
+        browserComponents.findElementAndClick(By.XPATH, NEXT_WEEK_BUTTON_XPATH)
         time.sleep(2)
         attempts += 1
 
