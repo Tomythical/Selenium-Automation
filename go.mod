@@ -5,6 +5,7 @@ go 1.23.4
 require github.com/go-rod/rod v0.116.2
 
 require (
+	github.com/joho/godotenv v1.5.1 // indirect
 	github.com/sirupsen/logrus v1.9.3 // indirect
 	github.com/ysmood/fetchup v0.2.3 // indirect
 	github.com/ysmood/goob v0.4.0 // indirect

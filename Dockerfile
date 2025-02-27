@@ -1,45 +1,29 @@
-# Use a minimal base image
-FROM --platform=linux/amd64 python:3.11-slim
+# Stage 1: Build the Go application
+FROM golang:1.24 AS builder
 
-# Set environment variables early to optimize caching
-ENV POETRY_VERSION=1.8.3 \
-  POETRY_NO_INTERACTION=1 \
-  POETRY_VIRTUALENVS_IN_PROJECT=1 \
-  POETRY_VIRTUALENVS_CREATE=1 \
-  POETRY_CACHE_DIR=/tmp/poetry_cache \
-  VIRTUAL_ENV=/app/.venv \
-  PATH="/app/.venv/bin:$PATH"
-
-# Install dependencies (use --no-install-recommends to reduce image size)
-RUN apt-get update && apt-get install -y --no-install-recommends \
-  wget \
-  unzip \
-  curl \
-  && wget -qO /tmp/google-chrome.deb https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb \
-  && apt-get install -y --no-install-recommends /tmp/google-chrome.deb \
-  && rm -rf /tmp/google-chrome.deb \
-  && apt-get clean \
-  && rm -rf /var/lib/apt/lists/*
-
-# Install Poetry
-RUN pip install --no-cache-dir "poetry==$POETRY_VERSION"
-
-# Set working directory
 WORKDIR /app
 
-# Copy only necessary files first (to leverage Docker's cache)
-COPY pyproject.toml poetry.lock ./
+# Copy go.mod and go.sum to download dependencies
+COPY go.mod go.sum ./
+RUN go mod download
 
-# Install dependencies separately before adding the source code
-RUN poetry install --no-root --no-cache
+# Copy the rest of the application
+COPY cmd/* .
 
-# Copy source code
-COPY src/ ./src
+# Build the binary
+RUN go build -o app
 
-# Use a non-root user for security
-RUN useradd -m appuser && chown -R appuser:appuser /app
-USER appuser
+# Stage 2: Use the correct Go-Rod image based on architecture
+FROM ghcr.io/go-rod/rod:amd AS rod_amd
+FROM ghcr.io/go-rod/rod:arm AS rod_arm
 
-# Set entrypoint
-ENTRYPOINT [ "python", "src/main.py"]
+# Set the correct base image dynamically
+FROM rod_${TARGETARCH} AS runtime
+WORKDIR /app
 
+# Copy the built Go binary from the builder stage
+COPY --from=builder /app/app .
+COPY ./cmd/.env .
+
+# Run the application
+ENTRYPOINT ["./app"]
