@@ -27,6 +27,18 @@ var (
 	dryRun    bool
 )
 
+func setUp() {
+	logrus.SetFormatter(&logrus.TextFormatter{
+		FullTimestamp: true,
+	})
+	logrus.SetLevel(logrus.DebugLevel)
+
+	err := godotenv.Load()
+	if err != nil {
+		logrus.Fatal("Error loading .env file")
+	}
+}
+
 func argParser() {
 	flag.IntVar(&startTime, "start", 8, "Set session start time")
 	flag.BoolVar(&dryRun, "dry", false, "Simulate the run without making any changes")
@@ -69,29 +81,14 @@ func chooseCourt(page *rod.Page) (court int, err error) {
 	return -1, fmt.Errorf("No Courts available")
 }
 
-func main() {
-	argParser()
-
-	logrus.SetFormatter(&logrus.TextFormatter{
-		FullTimestamp: true,
-	})
-	logrus.SetLevel(logrus.DebugLevel)
-
-	err := godotenv.Load()
-	if err != nil {
-		logrus.Fatal("Error loading .env file")
-	}
-
-	browser := rod.New().MustConnect().NoDefaultDevice().Timeout(time.Second * 300)
-	defer browser.Close()
-
-	page := browser.MustPage(WEBSITE_URL).MustWindowFullscreen().MustWaitStable()
-
+func logIn(page *rod.Page) {
 	page.MustElement(LOGIN_USERNAME).MustInput(os.Getenv("USERNAME"))
 	page.MustElement(LOGIN_PASSWORD).MustInput(os.Getenv("PASSWORD"))
 	page.MustSearch(SIGN_IN_BTN).MustClick()
 	logrus.Info("Logging In")
+}
 
+func navigateToDate(page *rod.Page) {
 	layout := "03:04:05 PM"
 	sleepCount := 0
 
@@ -111,7 +108,7 @@ func main() {
 		logrus.Info(el.MustText())
 
 		if sleepCount >= 180 {
-			logrus.Error("Sleep count exceeded 2 minutes")
+			logrus.Error("Sleep count exceeded 3 minutes")
 			sleepCount += 1
 			return
 		}
@@ -135,7 +132,6 @@ func main() {
 		}
 
 		time.Sleep(time.Second)
-
 	}
 
 	if !dryRun {
@@ -143,6 +139,18 @@ func main() {
 		page.MustElement(NEXT_WEEK_BTN).MustClick()
 		page.MustWaitStable()
 	}
+}
+
+func main() {
+	argParser()
+	setUp()
+
+	browser := rod.New().MustConnect().NoDefaultDevice().Timeout(time.Second * 300)
+	defer browser.Close()
+	page := browser.MustPage(WEBSITE_URL).MustWindowFullscreen().MustWaitStable()
+
+	logIn(page)
+	navigateToDate(page)
 
 	courtNumber, courtErr := chooseCourt(page)
 	if courtErr != nil {
