@@ -35,7 +35,7 @@ func setUp() {
 
 	err := godotenv.Load()
 	if err != nil {
-		logrus.Fatal("Error loading .env file")
+		logrus.Info("No .env file found")
 	}
 }
 
