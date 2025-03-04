@@ -18,6 +18,7 @@ FROM ghcr.io/go-rod/rod AS rod
 
 # Set the correct base image dynamically
 WORKDIR /app
+RUN ls
 
 # Copy the built Go binary from the builder stage
 COPY --from=builder /app/app .
