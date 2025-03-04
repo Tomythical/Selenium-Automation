@@ -8,7 +8,7 @@ COPY go.mod go.sum ./
 RUN go mod download
 
 # Copy the rest of the application
-COPY ./cmd/* ./
+COPY cmd/* ./
 
 # Build the binary
 RUN go build -o app
@@ -16,10 +16,12 @@ RUN go build -o app
 # Stage 2: Use the correct Go-Rod image based on architecture
 FROM ghcr.io/go-rod/rod AS rod
 
+# Set the correct base image dynamically
 WORKDIR /app
 
 # Copy the built Go binary from the builder stage
 COPY --from=builder /app/app .
+RUN tree
 COPY ./cmd/.env .
 
 # Run the application
