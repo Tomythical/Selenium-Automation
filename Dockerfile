@@ -8,7 +8,7 @@ COPY go.mod go.sum ./
 RUN go mod download
 
 # Copy the rest of the application
-COPY cmd/* ./
+COPY ./cmd/* ./
 
 # Build the binary
 RUN go build -o app
