@@ -131,7 +131,7 @@ func navigateToDate(page *rod.Page) {
 			logrus.Infof("Sleep count: %v", sleepCount)
 		}
 
-		time.Sleep(time.Second)
+		time.Sleep(time.Second * 3)
 	}
 
 	if !dryRun {

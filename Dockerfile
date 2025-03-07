@@ -13,7 +13,6 @@ COPY cmd/* ./
 # Build the binary
 RUN go build -o app
 
-# Stage 2: Use the correct Go-Rod image based on architecture
 FROM ghcr.io/go-rod/rod AS rod
 
 # Set the correct base image dynamically
