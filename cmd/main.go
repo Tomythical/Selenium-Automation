@@ -18,6 +18,8 @@ const (
 	SIGN_IN_BTN      = "btn-sign-in"
 	CLOCK            = "#_activities_WAR_northstarportlet_\\:activityForm\\:j_idt70"
 	NEXT_WEEK_BTN    = "#_activities_WAR_northstarportlet_\\:activityForm\\:j_idt100"
+	NEXT_DAY_BTN     = "#_activities_WAR_northstarportlet_\\:activityForm\\:j_idt102"
+	DATE_PICKER      = "#_activities_WAR_northstarportlet_\\:activityForm\\:j_idt65_input"
 	BOOK_SESSION_BTN = "#_activities_WAR_northstarportlet_\\:activityForm\\:j_idt1196"
 	LOADING_TEXT     = "#wrapper"
 )
@@ -134,10 +136,36 @@ func navigateToDate(page *rod.Page) {
 		time.Sleep(time.Second * 3)
 	}
 
+	loc, err := time.LoadLocation("Asia/Singapore")
+	if err != nil {
+		panic(err)
+	}
+
+	tomorrow := time.Now().In(loc).AddDate(0, 0, 1).Format("02/01/2006")
+	weekAhead := time.Now().In(loc).AddDate(0, 0, 7).Format("02/01/2006")
+
 	if !dryRun {
 		logrus.Debug("Clicking Next Week")
 		page.MustElement(NEXT_WEEK_BTN).MustClick()
-		page.MustWaitStable()
+
+		jsCondition := fmt.Sprintf(`() => {
+        const el = document.querySelector("input#_activities_WAR_northstarportlet_\\:activityForm\\:j_idt65_input");
+        return el && el.value === "%s";
+      }`, weekAhead)
+		page.MustElement(DATE_PICKER).MustWait(jsCondition)
+
+		logrus.Debugf("Current Day: %v", page.MustElement(DATE_PICKER).MustText())
+	} else {
+		logrus.Debug("Clicking Next Day")
+		page.MustElement(NEXT_DAY_BTN).MustClick()
+
+		jsCondition := fmt.Sprintf(`() => {
+        const el = document.querySelector("input#_activities_WAR_northstarportlet_\\:activityForm\\:j_idt65_input");
+        return el && el.value === "%s";
+      }`, tomorrow)
+		page.MustElement(DATE_PICKER).MustWait(jsCondition)
+
+		logrus.Debugf("Current Day: %v", page.MustElement(DATE_PICKER).MustText())
 	}
 }
 
@@ -145,7 +173,7 @@ func main() {
 	argParser()
 	setUp()
 
-	browser := rod.New().MustConnect().NoDefaultDevice().Timeout(time.Second * 300)
+	browser := rod.New().MustConnect().NoDefaultDevice().Timeout(time.Second * 300).Trace(true)
 	defer browser.Close()
 	page := browser.MustPage(WEBSITE_URL).MustWindowFullscreen().MustWaitStable()
 
