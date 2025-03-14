@@ -70,7 +70,6 @@ func logIn(page *rod.Page) {
 }
 
 func navigateToDate(page *rod.Page) {
-	layout := "03:04:05"
 	sleepCount := 0
 
 	ALLOWED_START_TIME := "07:00:00"
@@ -78,10 +77,9 @@ func navigateToDate(page *rod.Page) {
 		ALLOWED_START_TIME = "00:00:00"
 	}
 
-	bookingStartTime, err := time.Parse(layout, ALLOWED_START_TIME)
+	bookingStartTime, err := parseTimeString(ALLOWED_START_TIME)
 	if err != nil {
-		logrus.Error("Error parsing 7 AM:", err)
-		return
+		panic(err)
 	}
 
 	for {
@@ -98,9 +96,9 @@ func navigateToDate(page *rod.Page) {
 			time.Sleep(time.Second)
 			continue
 		}
-		clockTime, err := time.Parse(layout, el.MustText())
+
+		clockTime, err := parseTimeString(el.MustText())
 		if err != nil {
-			logrus.Error("Error parsing time:", err)
 			panic(err)
 		}
 
