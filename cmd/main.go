@@ -18,15 +18,16 @@ const (
 	SIGN_IN_BTN      = "btn-sign-in"
 	CLOCK            = "#_activities_WAR_northstarportlet_\\:activityForm\\:currentTime"
 	NEXT_WEEK_BTN    = "#_activities_WAR_northstarportlet_\\:activityForm\\:j_idt100"
-	NEXT_DAY_BTN     = "#_activities_WAR_northstarportlet_\\:activityForm\\:j_idt102"
-	DATE_PICKER      = "#_activities_WAR_northstarportlet_\\:activityForm\\:j_idt65_input"
-	BOOK_SESSION_BTN = "#_activities_WAR_northstarportlet_\\:activityForm\\:j_idt1196"
+	NEXT_DAY_BTN     = "#_activities_WAR_northstarportlet_\\:activityForm\\:j_idt94"
+	DATE_PICKER      = "#_activities_WAR_northstarportlet_\\:activityForm\\:j_idt57_input"
+	BOOK_SESSION_BTN = "#_activities_WAR_northstarportlet_\\:activityForm\\:j_idt378"
 	LOADING_TEXT     = "#wrapper"
 )
 
 var (
 	startTime int
 	dryRun    bool
+	book      bool
 )
 
 func setUp() {
@@ -44,6 +45,7 @@ func setUp() {
 func argParser() {
 	flag.IntVar(&startTime, "start", 8, "Set session start time")
 	flag.BoolVar(&dryRun, "dry", false, "Simulate the run without making any changes")
+	flag.BoolVar(&book, "book", false, "Allow for booking when in dry-run mode")
 
 	// Parse the command line flags.
 	flag.Parse()
@@ -53,6 +55,10 @@ func argParser() {
 		logrus.Debugf("Dry-run mode enabled")
 	} else {
 		logrus.Debugf("Dry-run mode disabled")
+	}
+
+	if book {
+		logrus.Debugf("Will book session today")
 	}
 }
 
@@ -64,12 +70,12 @@ func logIn(page *rod.Page) {
 }
 
 func navigateToDate(page *rod.Page) {
-	layout := "03:04:05 PM"
+	layout := "03:04:05"
 	sleepCount := 0
 
-	ALLOWED_START_TIME := "07:00:00 AM"
+	ALLOWED_START_TIME := "07:00:00"
 	if dryRun {
-		ALLOWED_START_TIME = "00:00:00 AM"
+		ALLOWED_START_TIME = "00:00:00"
 	}
 
 	bookingStartTime, err := time.Parse(layout, ALLOWED_START_TIME)
@@ -95,7 +101,7 @@ func navigateToDate(page *rod.Page) {
 		clockTime, err := time.Parse(layout, el.MustText())
 		if err != nil {
 			logrus.Error("Error parsing time:", err)
-			return
+			panic(err)
 		}
 
 		if clockTime.After(bookingStartTime) {
@@ -133,7 +139,7 @@ func navigateToDate(page *rod.Page) {
 		page.MustElement(NEXT_DAY_BTN).MustClick()
 
 		jsCondition := fmt.Sprintf(`() => {
-        const el = document.querySelector("input#_activities_WAR_northstarportlet_\\:activityForm\\:j_idt65_input");
+        const el = document.querySelector("input#_activities_WAR_northstarportlet_\\:activityForm\\:j_idt57_input");
         return el && el.value === "%s";
       }`, tomorrow)
 		page.MustElement(DATE_PICKER).MustWait(jsCondition)
@@ -186,12 +192,11 @@ func main() {
 		return
 	}
 
-	if dryRun {
+	if dryRun && !book {
 		logrus.Infof("Booking Page Reached. Ending Automation")
 		return
 	}
 
 	page.MustElement(BOOK_SESSION_BTN).MustClick()
-	page.MustWaitStable()
 	logrus.Infof("Court %v has been booked for %v:00", courtNumber, startTime)
 }
