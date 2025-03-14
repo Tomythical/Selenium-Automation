@@ -16,7 +16,7 @@ const (
 	LOGIN_USERNAME   = "#_com_liferay_login_web_portlet_LoginPortlet_login"
 	LOGIN_PASSWORD   = "#_com_liferay_login_web_portlet_LoginPortlet_password"
 	SIGN_IN_BTN      = "btn-sign-in"
-	CLOCK            = "#_activities_WAR_northstarportlet_\\:activityForm\\:j_idt70"
+	CLOCK            = "#_activities_WAR_northstarportlet_\\:activityForm\\:currentTime"
 	NEXT_WEEK_BTN    = "#_activities_WAR_northstarportlet_\\:activityForm\\:j_idt100"
 	NEXT_DAY_BTN     = "#_activities_WAR_northstarportlet_\\:activityForm\\:j_idt102"
 	DATE_PICKER      = "#_activities_WAR_northstarportlet_\\:activityForm\\:j_idt65_input"
@@ -54,33 +54,6 @@ func argParser() {
 	} else {
 		logrus.Debugf("Dry-run mode disabled")
 	}
-}
-
-func chooseCourt(page *rod.Page) (court int, err error) {
-	logrus.Info("Choosing court")
-	tableRow := startTime - 7
-	courtPreference := []int{4, 5, 3, 1, 2, 6}
-
-	for _, court := range courtPreference {
-		courtFormatted := fmt.Sprintf("#t%vc%v", tableRow, court-1)
-		logrus.Debugf("Court ID: %v", courtFormatted)
-
-		courtElement, err := page.Timeout(time.Second * 5).Element(courtFormatted)
-		if err != nil {
-			logrus.Debugf("Cannot find court %v", court)
-			continue
-		}
-
-		if courtElement.MustText() == "" {
-			logrus.Infof("Clicking Court %v", court)
-			courtElement.MustWaitVisible()
-			courtElement.MustClick()
-			return court, nil
-		} else {
-			logrus.Infof("Court %v is not available: %v", court, courtElement.MustText())
-		}
-	}
-	return -1, fmt.Errorf("No Courts available")
 }
 
 func logIn(page *rod.Page) {
@@ -167,6 +140,33 @@ func navigateToDate(page *rod.Page) {
 
 		logrus.Debugf("Current Day: %v", page.MustElement(DATE_PICKER).MustText())
 	}
+}
+
+func chooseCourt(page *rod.Page) (court int, err error) {
+	logrus.Info("Choosing court")
+	tableRow := startTime - 7
+	courtPreference := []int{4, 5, 3, 1, 2, 6}
+
+	for _, court := range courtPreference {
+		courtFormatted := fmt.Sprintf("#t%vc%v", tableRow, court-1)
+		logrus.Debugf("Court ID: %v", courtFormatted)
+
+		courtElement, err := page.Timeout(time.Second * 5).Element(courtFormatted)
+		if err != nil {
+			logrus.Debugf("Cannot find court %v", court)
+			continue
+		}
+
+		if courtElement.MustText() == "" {
+			logrus.Infof("Clicking Court %v", court)
+			courtElement.MustWaitVisible()
+			courtElement.MustClick()
+			return court, nil
+		} else {
+			logrus.Infof("Court %v is not available: %v", court, courtElement.MustText())
+		}
+	}
+	return -1, fmt.Errorf("No Courts available")
 }
 
 func main() {
