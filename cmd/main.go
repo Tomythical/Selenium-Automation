@@ -12,16 +12,17 @@ import (
 )
 
 const (
-	WEBSITE_URL      = "https://nsmembers.sswimclub.org.sg/group/pages/book-a-facility"
-	LOGIN_USERNAME   = "#_com_liferay_login_web_portlet_LoginPortlet_login"
-	LOGIN_PASSWORD   = "#_com_liferay_login_web_portlet_LoginPortlet_password"
-	SIGN_IN_BTN      = "btn-sign-in"
-	CLOCK            = "#_activities_WAR_northstarportlet_\\:activityForm\\:currentTime"
-	NEXT_WEEK_BTN    = "#_activities_WAR_northstarportlet_\\:activityForm\\:j_idt100"
-	NEXT_DAY_BTN     = "#_activities_WAR_northstarportlet_\\:activityForm\\:j_idt94"
-	DATE_PICKER      = "#_activities_WAR_northstarportlet_\\:activityForm\\:j_idt57_input"
-	BOOK_SESSION_BTN = "#_activities_WAR_northstarportlet_\\:activityForm\\:j_idt378"
-	LOADING_TEXT     = "#wrapper"
+	WEBSITE_URL         = "https://nsmembers.sswimclub.org.sg/group/pages/book-a-facility"
+	LOGIN_USERNAME      = "#_com_liferay_login_web_portlet_LoginPortlet_login"
+	LOGIN_PASSWORD      = "#_com_liferay_login_web_portlet_LoginPortlet_password"
+	SIGN_IN_BTN         = "btn-sign-in"
+	CLOCK               = "currentTime"
+	NEXT_WEEK_BTN       = "fa-angle-double-right"
+	NEXT_DAY_BTN        = "fa-angle-right"
+	DATE_PICKER         = "hasDatepicker"
+	BOOK_SESSION_BTN    = "ui-area-btn-success"
+	LOADING_TEXT        = "#wrapper"
+	COURT_RESERVED_TEXT = "Reservation created successfully"
 )
 
 var (
@@ -83,7 +84,7 @@ func navigateToDate(page *rod.Page) {
 	}
 
 	for {
-		el := page.MustElement(CLOCK)
+		el := page.MustSearch(CLOCK)
 		logrus.Info(el.MustText())
 
 		if sleepCount >= 180 {
@@ -123,26 +124,26 @@ func navigateToDate(page *rod.Page) {
 
 	if !dryRun {
 		logrus.Debug("Clicking Next Week")
-		page.MustElement(NEXT_WEEK_BTN).MustClick()
+		page.MustSearch(NEXT_WEEK_BTN).MustParent().MustClick()
 
 		jsCondition := fmt.Sprintf(`() => {
-        const el = document.querySelector("input#_activities_WAR_northstarportlet_\\:activityForm\\:j_idt65_input");
+        const el = document.querySelector('[class*="%s"]');
         return el && el.value === "%s";
-      }`, weekAhead)
-		page.MustElement(DATE_PICKER).MustWait(jsCondition)
+      }`, DATE_PICKER, weekAhead)
+		page.MustSearch(DATE_PICKER).MustWait(jsCondition)
 
-		logrus.Debugf("Current Day: %v", page.MustElement(DATE_PICKER).MustText())
+		logrus.Debugf("Current Day: %v", page.MustSearch(DATE_PICKER).MustText())
 	} else {
 		logrus.Debug("Clicking Next Day")
-		page.MustElement(NEXT_DAY_BTN).MustClick()
+		page.MustSearch(NEXT_DAY_BTN).MustParent().MustClick()
 
 		jsCondition := fmt.Sprintf(`() => {
-        const el = document.querySelector("input#_activities_WAR_northstarportlet_\\:activityForm\\:j_idt57_input");
+        const el = document.querySelector('[class*="%s"]');
         return el && el.value === "%s";
-      }`, tomorrow)
-		page.MustElement(DATE_PICKER).MustWait(jsCondition)
+      }`, DATE_PICKER, tomorrow)
+		page.MustSearch(DATE_PICKER).MustWait(jsCondition)
 
-		logrus.Debugf("Current Day: %v", page.MustElement(DATE_PICKER).MustText())
+		logrus.Debugf("Current Day: %v", page.MustSearch(DATE_PICKER).MustText())
 	}
 }
 
@@ -155,7 +156,7 @@ func chooseCourt(page *rod.Page) (court int, err error) {
 		courtFormatted := fmt.Sprintf("#t%vc%v", tableRow, court-1)
 		logrus.Debugf("Court ID: %v", courtFormatted)
 
-		courtElement, err := page.Timeout(time.Second * 5).Element(courtFormatted)
+		courtElement, err := page.Timeout(time.Second / 10).Element(courtFormatted)
 		if err != nil {
 			logrus.Debugf("Cannot find court %v", court)
 			continue
@@ -164,13 +165,20 @@ func chooseCourt(page *rod.Page) (court int, err error) {
 		if courtElement.MustText() == "" {
 			logrus.Infof("Clicking Court %v", court)
 			courtElement.MustWaitVisible()
-			courtElement.MustClick()
+			err := rod.Try(func() {
+				courtElement.MustClick()
+			})
+			if err != nil {
+				logrus.Debugf("Could not click court %v. Skipping...", court)
+				continue
+			}
+
 			return court, nil
 		} else {
 			logrus.Infof("Court %v is not available: %v", court, courtElement.MustText())
 		}
 	}
-	return -1, fmt.Errorf("No Courts available")
+	return -1, fmt.Errorf("no courts available")
 }
 
 func main() {
@@ -195,6 +203,7 @@ func main() {
 		return
 	}
 
-	page.MustElement(BOOK_SESSION_BTN).MustClick()
+	page.MustSearch(BOOK_SESSION_BTN).MustClick()
 	logrus.Infof("Court %v has been booked for %v:00", courtNumber, startTime)
+	page.Timeout(time.Second * 8).MustSearch(COURT_RESERVED_TEXT)
 }
