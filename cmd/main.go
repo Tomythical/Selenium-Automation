@@ -16,7 +16,7 @@ const (
 	LOGIN_USERNAME      = "#_com_liferay_login_web_portlet_LoginPortlet_login"
 	LOGIN_PASSWORD      = "#_com_liferay_login_web_portlet_LoginPortlet_password"
 	SIGN_IN_BTN         = "btn-sign-in"
-	CLOCK               = "currentTime"
+	CLOCK               = "ui-clock"
 	NEXT_WEEK_BTN       = "fa-angle-double-right"
 	NEXT_DAY_BTN        = "fa-angle-right"
 	DATE_PICKER         = "hasDatepicker"
@@ -64,10 +64,19 @@ func argParser() {
 }
 
 func logIn(page *rod.Page) {
-	page.MustElement(LOGIN_USERNAME).MustInput(os.Getenv("USERNAME"))
-	page.MustElement(LOGIN_PASSWORD).MustInput(os.Getenv("PASSWORD"))
+	username_text := os.Getenv("USERNAME")
+	password_text := os.Getenv("PASSWORD")
+
+	if username_text == "" || password_text == "" {
+		logrus.Error("Username or Password not set in environment variables")
+		return
+	}
+
+	page.MustElement(LOGIN_USERNAME).MustInput(username_text)
+	page.MustElement(LOGIN_PASSWORD).MustInput(password_text)
 	page.MustSearch(SIGN_IN_BTN).MustClick()
 	logrus.Info("Logging In")
+	page.MustScreenshot("images/post-login-click.png")
 }
 
 func navigateToDate(page *rod.Page) {
@@ -84,6 +93,9 @@ func navigateToDate(page *rod.Page) {
 	}
 
 	for {
+		page.MustScreenshot("images/loading.png")
+
+		logrus.Debug("Looking for clock")
 		el := page.MustSearch(CLOCK)
 		logrus.Info(el.MustText())
 
