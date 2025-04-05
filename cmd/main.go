@@ -12,17 +12,19 @@ import (
 )
 
 const (
-	WEBSITE_URL         = "https://nsmembers.sswimclub.org.sg/group/pages/book-a-facility"
-	LOGIN_USERNAME      = "#_com_liferay_login_web_portlet_LoginPortlet_login"
-	LOGIN_PASSWORD      = "#_com_liferay_login_web_portlet_LoginPortlet_password"
-	SIGN_IN_BTN         = "btn-sign-in"
-	CLOCK               = "ui-clock"
-	NEXT_WEEK_BTN       = "fa-angle-double-right"
-	NEXT_DAY_BTN        = "fa-angle-right"
-	DATE_PICKER         = "hasDatepicker"
-	BOOK_SESSION_BTN    = "ui-area-btn-success"
-	LOADING_TEXT        = "#wrapper"
-	COURT_RESERVED_TEXT = "Reservation created successfully"
+	WEBSITE_URL              = "https://nsmembers.sswimclub.org.sg/group/pages/book-a-facility"
+	LOGIN_USERNAME           = "#_com_liferay_login_web_portlet_LoginPortlet_login"
+	LOGIN_PASSWORD           = "#_com_liferay_login_web_portlet_LoginPortlet_password"
+	SIGN_IN_BTN              = "btn-sign-in"
+	CLOCK                    = "ui-clock"
+	NEXT_WEEK_BTN            = "fa-angle-double-right"
+	NEXT_DAY_BTN             = "fa-angle-right"
+	DATE_PICKER              = "hasDatepicker"
+	BOOK_SESSION_BTN         = "ui-area-btn-success"
+	LOADING_TEXT             = "#wrapper"
+	COURT_RESERVED_TEXT      = "Reservation created successfully"
+	ADVANCED_BOOKING_OVERLAY = "advance-booking-overlay-container"
+	TIMEZONE                 = "Asia/Singapore"
 )
 
 var (
@@ -76,46 +78,34 @@ func logIn(page *rod.Page) {
 	page.MustElement(LOGIN_PASSWORD).MustInput(password_text)
 	page.MustSearch(SIGN_IN_BTN).MustClick()
 	logrus.Info("Logging In")
-	page.MustScreenshot("images/post-login-click.png")
 }
 
 func navigateToDate(page *rod.Page) {
+	page.MustSearch(CLOCK)
+	page.MustScreenshot("images/loading.png")
+
 	sleepCount := 0
 
-	ALLOWED_START_TIME := "07:00:00"
+	ALLOWED_START_TIME := 7
 	if dryRun {
-		ALLOWED_START_TIME = "00:00:00"
+		ALLOWED_START_TIME = 0
 	}
 
-	bookingStartTime, err := parseTimeString(ALLOWED_START_TIME)
-	if err != nil {
-		panic(err)
-	}
+	bookingStartTime := getSetHourInTimezone(ALLOWED_START_TIME, TIMEZONE)
 
 	for {
-		page.MustScreenshot("images/loading.png")
-
-		logrus.Debug("Looking for clock")
-		el := page.MustSearch(CLOCK)
-		logrus.Info(el.MustText())
-
 		if sleepCount >= 180 {
 			logrus.Error("Sleep count exceeded 3 minutes")
 			sleepCount += 1
 			return
 		}
-		if el.MustText() == "" {
-			logrus.Debug("Clock has no text")
-			time.Sleep(time.Second)
-			continue
-		}
 
-		clockTime, err := parseTimeString(el.MustText())
+		timezoneTime, err := getCurrentTimeInTimezone(TIMEZONE)
 		if err != nil {
 			panic(err)
 		}
 
-		if clockTime.After(bookingStartTime) {
+		if timezoneTime.After(bookingStartTime) {
 			logrus.Info("Time is past 7 AM.")
 			break
 		} else {
@@ -123,10 +113,10 @@ func navigateToDate(page *rod.Page) {
 			logrus.Infof("Sleep count: %v", sleepCount)
 		}
 
-		time.Sleep(time.Second * 3)
+		time.Sleep(time.Second * 1)
 	}
 
-	loc, err := time.LoadLocation("Asia/Singapore")
+	loc, err := time.LoadLocation(TIMEZONE)
 	if err != nil {
 		panic(err)
 	}
@@ -156,6 +146,12 @@ func navigateToDate(page *rod.Page) {
 		page.MustSearch(DATE_PICKER).MustWait(jsCondition)
 
 		logrus.Debugf("Current Day: %v", page.MustSearch(DATE_PICKER).MustText())
+	}
+
+	advanced_overlay_booking, _ := page.Timeout(time.Second).Search(ADVANCED_BOOKING_OVERLAY)
+	if advanced_overlay_booking != nil {
+		logrus.Info("Clicked Next Week too soon. Unable to book")
+		panic(fmt.Errorf("clicked next week too soon. unable to book"))
 	}
 }
 

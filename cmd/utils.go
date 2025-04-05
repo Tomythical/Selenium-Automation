@@ -1,22 +1,31 @@
 package main
 
 import (
-	"fmt"
 	"time"
 
 	"github.com/sirupsen/logrus"
 )
 
-func parseTimeString(timeStr string) (time.Time, error) {
-	layouts := []string{"15:04:05", "03:04:05", "3:04:05 AM", "3:04:05 PM"}
-
-	for _, layout := range layouts {
-		logrus.Debugf("Parsing timee %s with layout %s", timeStr, layout)
-		parsedTime, err := time.Parse(layout, timeStr)
-		if err == nil {
-			return parsedTime, err
-		}
+func getSetHourInTimezone(startHour int, timezone string) time.Time {
+	location, err := time.LoadLocation(timezone)
+	if err != nil {
+		panic(err)
 	}
 
-	return time.Time{}, fmt.Errorf("unable to parse time string: %s", timeStr)
+	locationCurrentTime := time.Now().In(location)
+
+	timezoneAdjustedTime := time.Date(locationCurrentTime.Year(), locationCurrentTime.Month(), locationCurrentTime.Day(), startHour, 0, 0, 0, location)
+	logrus.Debugf("Today at %v AM in Singapore: %v", startHour, timezoneAdjustedTime)
+	return timezoneAdjustedTime
+}
+
+func getCurrentTimeInTimezone(timezone string) (time.Time, error) {
+	location, err := time.LoadLocation(timezone)
+	if err != nil {
+		logrus.Errorf("Error loading location: %v", err)
+		return time.Time{}, err
+	}
+	currentTime := time.Now().In(location)
+	logrus.Debugf("Current time: %s", currentTime)
+	return currentTime, nil
 }
