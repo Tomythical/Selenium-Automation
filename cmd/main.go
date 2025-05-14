@@ -25,6 +25,7 @@ const (
 	COURT_RESERVED_TEXT      = "Reservation created successfully"
 	ADVANCED_BOOKING_OVERLAY = "advance-booking-overlay-container"
 	TIMEZONE                 = "Asia/Singapore"
+	BUCKET_NAME              = "singapore-booking-screenshots"
 )
 
 var (
@@ -82,7 +83,6 @@ func logIn(page *rod.Page) {
 
 func navigateToDate(page *rod.Page) {
 	page.MustSearch(CLOCK)
-	page.MustScreenshot("images/loading.png")
 
 	sleepCount := 0
 
@@ -133,6 +133,7 @@ func navigateToDate(page *rod.Page) {
         return el && el.value === "%s";
       }`, DATE_PICKER, weekAhead)
 		page.MustSearch(DATE_PICKER).MustWait(jsCondition)
+		page.MustScreenshot("images/court_booking.png")
 
 		logrus.Debugf("Current Day: %v", page.MustSearch(DATE_PICKER).MustText())
 	} else {
@@ -144,6 +145,7 @@ func navigateToDate(page *rod.Page) {
         return el && el.value === "%s";
       }`, DATE_PICKER, tomorrow)
 		page.MustSearch(DATE_PICKER).MustWait(jsCondition)
+		page.MustScreenshot("images/court_booking.png")
 
 		logrus.Debugf("Current Day: %v", page.MustSearch(DATE_PICKER).MustText())
 	}
@@ -201,8 +203,20 @@ func main() {
 	navigateToDate(page)
 
 	courtNumber, courtErr := chooseCourt(page)
+
+	date, err := getCurrentTimeInTimezone(TIMEZONE)
+	formattedDate := date.Format("Monday - 02-01-06")
+	if err != nil {
+		panic(err)
+	}
+
 	if courtErr != nil {
-		logrus.Errorf("No courts are available")
+		logrus.Infof("No courts are available")
+		logrus.Infof("Uploading File")
+		err := uploadFile(BUCKET_NAME, formattedDate, "images/court_booking.png")
+		if err != nil {
+			logrus.Errorf("Error uploading file: %v", err)
+		}
 		return
 	}
 

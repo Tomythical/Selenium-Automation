@@ -1,0 +1,11 @@
+version: '3'
+
+vars:
+  GREETING: Hello, World!
+
+tasks:
+  default:
+    cmds:
+    - docker build --platform=linux/amd64 --progress=plain -t singapore-badminton-amd64 .
+    - docker tag singapore-badminton-amd64 europe-west2-docker.pkg.dev/automation-booking-406419/automated-bookings/singapore-badminton
+    - docker push europe-west2-docker.pkg.dev/automation-booking-406419/automated-bookings/singapore-badminton
