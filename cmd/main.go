@@ -83,6 +83,7 @@ func logIn(page *rod.Page) {
 
 func navigateToDate(page *rod.Page) {
 	page.MustSearch(CLOCK)
+	page.MustScreenshot("images/loading.png")
 
 	sleepCount := 0
 
@@ -145,7 +146,6 @@ func navigateToDate(page *rod.Page) {
         return el && el.value === "%s";
       }`, DATE_PICKER, tomorrow)
 		page.MustSearch(DATE_PICKER).MustWait(jsCondition)
-		page.MustScreenshot("images/court_booking.png")
 
 		logrus.Debugf("Current Day: %v", page.MustSearch(DATE_PICKER).MustText())
 	}
@@ -222,10 +222,19 @@ func main() {
 
 	if dryRun && !book {
 		logrus.Infof("Booking Page Reached. Ending Automation")
+		err := uploadFile(BUCKET_NAME, formattedDate, "images/loading.png")
+		if err != nil {
+			logrus.Errorf("Error uploading file: %v", err)
+		}
 		return
 	}
 
 	page.MustSearch(BOOK_SESSION_BTN).MustClick()
 	logrus.Infof("Court %v has been booked for %v:00", courtNumber, startTime)
 	page.Timeout(time.Second * 8).MustSearch(COURT_RESERVED_TEXT)
+
+	fileErr := uploadFile(BUCKET_NAME, formattedDate, "images/loading.png")
+	if fileErr != nil {
+		logrus.Errorf("Error uploading file: %v", err)
+	}
 }
