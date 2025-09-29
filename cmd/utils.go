@@ -9,7 +9,6 @@ import (
 
 	"cloud.google.com/go/storage"
 	"github.com/sirupsen/logrus"
-	"google.golang.org/api/option"
 )
 
 func getSetHourInTimezone(startHour int, timezone string) time.Time {
@@ -38,11 +37,11 @@ func getCurrentTimeInTimezone(timezone string) (time.Time, error) {
 
 func uploadFile(bucket, folder, filePath string) error {
 	ctx := context.Background()
-	client, err := storage.NewClient(ctx, option.WithCredentialsFile("sa_key.json"))
+	client, err := storage.NewClient(ctx)
 	if err != nil {
 		return fmt.Errorf("failed to create client: %v", err)
 	}
-	logrus.Debugf("Creating client with sa_key.json")
+	logrus.Debugf("Creating client")
 	defer client.Close()
 
 	// Open local file.

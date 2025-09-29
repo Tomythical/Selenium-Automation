@@ -200,6 +200,7 @@ func main() {
 	page := browser.MustPage(WEBSITE_URL).MustWindowFullscreen().MustWaitStable()
 
 	logIn(page)
+	uploadFile(BUCKET_NAME, "test", "images/test.png")
 	navigateToDate(page)
 
 	courtNumber, courtErr := chooseCourt(page)
@@ -233,7 +234,7 @@ func main() {
 	logrus.Infof("Court %v has been booked for %v:00", courtNumber, startTime)
 	page.Timeout(time.Second * 8).MustSearch(COURT_RESERVED_TEXT)
 
-	fileErr := uploadFile(BUCKET_NAME, formattedDate, "images/loading.png")
+	fileErr := uploadFile(BUCKET_NAME, formattedDate, "images/court_booked.png")
 	if fileErr != nil {
 		logrus.Errorf("Error uploading file: %v", err)
 	}
