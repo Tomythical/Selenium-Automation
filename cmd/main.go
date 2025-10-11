@@ -146,6 +146,7 @@ func navigateToDate(page *rod.Page) {
         return el && el.value === "%s";
       }`, DATE_PICKER, tomorrow)
 		page.MustSearch(DATE_PICKER).MustWait(jsCondition)
+		page.MustScreenshot("images/court_booking.png")
 
 		logrus.Debugf("Current Day: %v", page.MustSearch(DATE_PICKER).MustText())
 	}
@@ -172,7 +173,13 @@ func chooseCourt(page *rod.Page) (court int, err error) {
 			continue
 		}
 
-		if courtElement.MustText() == "" {
+		courtText, err := courtElement.Text()
+		if err != nil {
+			logrus.Infof("Could not get text from Court %v", court)
+			logrus.Debugf("Court %v Element: %v", court, courtElement)
+			continue
+		}
+		if courtText == "" {
 			logrus.Infof("Clicking Court %v", court)
 			courtElement.MustWaitVisible()
 			err := rod.Try(func() {
@@ -200,7 +207,6 @@ func main() {
 	page := browser.MustPage(WEBSITE_URL).MustWindowFullscreen().MustWaitStable()
 
 	logIn(page)
-	uploadFile(BUCKET_NAME, "test", "images/test.png")
 	navigateToDate(page)
 
 	courtNumber, courtErr := chooseCourt(page)
@@ -213,6 +219,7 @@ func main() {
 
 	if courtErr != nil {
 		logrus.Infof("No courts are available")
+
 		logrus.Infof("Uploading File")
 		err := uploadFile(BUCKET_NAME, formattedDate, "images/court_booking.png")
 		if err != nil {
@@ -223,10 +230,6 @@ func main() {
 
 	if dryRun && !book {
 		logrus.Infof("Booking Page Reached. Ending Automation")
-		err := uploadFile(BUCKET_NAME, formattedDate, "images/loading.png")
-		if err != nil {
-			logrus.Errorf("Error uploading file: %v", err)
-		}
 		return
 	}
 
