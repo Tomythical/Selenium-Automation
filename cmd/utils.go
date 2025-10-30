@@ -42,14 +42,22 @@ func uploadFile(bucket, folder, filePath string) error {
 		return fmt.Errorf("failed to create client: %v", err)
 	}
 	logrus.Debugf("Creating client")
-	defer client.Close()
+	defer func() {
+		if err := client.Close(); err != nil {
+			logrus.Errorf("Failed to close client: %v", err)
+		}
+	}()
 
 	// Open local file.
 	f, err := os.Open(filePath)
 	if err != nil {
 		return fmt.Errorf("os.Open: %w", err)
 	}
-	defer f.Close()
+	defer func() {
+		if err := f.Close(); err != nil {
+			logrus.Errorf("Failed to close file: %v", err)
+		}
+	}()
 
 	objectName := fmt.Sprintf("%s/%s", folder, f.Name())
 	wc := client.Bucket(bucket).Object(objectName).NewWriter(ctx)

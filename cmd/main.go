@@ -75,14 +75,25 @@ func logIn(page *rod.Page) {
 		return
 	}
 
-	page.MustElement(LOGIN_USERNAME).MustInput(username_text)
-	page.MustElement(LOGIN_PASSWORD).MustInput(password_text)
-	page.MustSearch(SIGN_IN_BTN).MustClick()
+	err := rod.Try(func() {
+		page.MustElement(LOGIN_USERNAME).MustInput(username_text)
+		page.MustElement(LOGIN_PASSWORD).MustInput(password_text)
+		page.MustSearch(SIGN_IN_BTN).MustClick()
+	})
+	if err != nil {
+		logrus.Errorf("Error logging in: %v", err)
+	}
+
 	logrus.Info("Logging In")
 }
 
 func navigateToDate(page *rod.Page) {
-	page.MustSearch(CLOCK)
+	err := rod.Try(func() {
+		page.MustSearch(CLOCK).MustWaitVisible()
+	})
+	if err != nil {
+		logrus.Errorf("Error waiting for clock: %v", err)
+	}
 	page.MustScreenshot("images/loading.png")
 
 	sleepCount := 0
@@ -97,7 +108,6 @@ func navigateToDate(page *rod.Page) {
 	for {
 		if sleepCount >= 180 {
 			logrus.Error("Sleep count exceeded 3 minutes")
-			sleepCount += 1
 			return
 		}
 
@@ -127,27 +137,40 @@ func navigateToDate(page *rod.Page) {
 
 	if !dryRun {
 		logrus.Debug("Clicking Next Week")
-		page.MustSearch(NEXT_WEEK_BTN).MustParent().MustClick()
+		err := rod.Try(func() {
+			page.MustSearch(NEXT_WEEK_BTN).MustParent().MustClick()
+		})
+		if err != nil {
+			logrus.Errorf("Error clicking next week button: %v", err)
+		}
 
 		jsCondition := fmt.Sprintf(`() => {
         const el = document.querySelector('[class*="%s"]');
         return el && el.value === "%s";
       }`, DATE_PICKER, weekAhead)
-		page.MustSearch(DATE_PICKER).MustWait(jsCondition)
+		err = rod.Try(func() {
+			page.MustSearch(DATE_PICKER).MustWait(jsCondition)
+		})
+		if err != nil {
+			logrus.Errorf("Error waiting for date picker: %v", err)
+		}
 		page.MustScreenshot("images/court_booking.png")
 
 		logrus.Debugf("Current Day: %v", page.MustSearch(DATE_PICKER).MustText())
 	} else {
 		logrus.Debug("Clicking Next Day")
-		page.MustSearch(NEXT_DAY_BTN).MustParent().MustClick()
-
+		err := rod.Try(func() {
+			page.MustSearch(NEXT_DAY_BTN).MustParent().MustClick()
+		})
+		if err != nil {
+			logrus.Errorf("Error clicking next day button: %v", err)
+		}
 		jsCondition := fmt.Sprintf(`() => {
         const el = document.querySelector('[class*="%s"]');
         return el && el.value === "%s";
       }`, DATE_PICKER, tomorrow)
 		page.MustSearch(DATE_PICKER).MustWait(jsCondition)
 		page.MustScreenshot("images/court_booking.png")
-
 		logrus.Debugf("Current Day: %v", page.MustSearch(DATE_PICKER).MustText())
 	}
 
@@ -167,7 +190,7 @@ func chooseCourt(page *rod.Page) (court int, err error) {
 		courtFormatted := fmt.Sprintf("#t%vc%v", tableRow, court-1)
 		logrus.Debugf("Court ID: %v", courtFormatted)
 
-		courtElement, err := page.Timeout(time.Second / 10).Element(courtFormatted)
+		courtElement, err := page.Timeout(time.Second * 2).Element(courtFormatted)
 		if err != nil {
 			logrus.Debugf("Cannot find court %v", court)
 			continue
@@ -191,6 +214,8 @@ func chooseCourt(page *rod.Page) (court int, err error) {
 			}
 
 			return court, nil
+		} else if courtText == "RESERVED" {
+			logrus.Infof("Court %v is already reserved", court)
 		} else {
 			logrus.Infof("Court %v is not available: %v", court, courtElement.MustText())
 		}
@@ -199,12 +224,44 @@ func chooseCourt(page *rod.Page) (court int, err error) {
 }
 
 func main() {
+	var err error
 	argParser()
 	setUp()
 
-	browser := rod.New().MustConnect().NoDefaultDevice().Timeout(time.Second * 300).Trace(true)
-	defer browser.Close()
-	page := browser.MustPage(WEBSITE_URL).MustWindowFullscreen().MustWaitStable()
+	var browser *rod.Browser
+	var page *rod.Page
+
+	// recover + screenshot on panic
+	defer func() {
+		if r := recover(); r != nil {
+			logrus.Errorf("panic recovered: %v", r)
+
+			// screenshot and page HTML if page exists (use rod.Try so we don't panic again)
+			if page != nil {
+				logrus.Info("Taking screenshot of the error")
+				_ = rod.Try(func() { page.MustScreenshot("images/panic.png") })
+			} else {
+				logrus.Info("Page is nil")
+			}
+
+			// best-effort close browser
+			if browser != nil {
+				_ = browser.Close()
+			}
+
+			os.Exit(1)
+		}
+	}()
+
+	// create browser and page
+	browser = rod.New().MustConnect().NoDefaultDevice().Timeout(time.Second * 300).Trace(true)
+	defer func() {
+		if err := browser.Close(); err != nil {
+			logrus.Errorf("Error closing browser: %v", err)
+		}
+	}()
+
+	page = browser.MustPage(WEBSITE_URL).MustWindowFullscreen().MustWaitStable()
 
 	logIn(page)
 	navigateToDate(page)
@@ -220,10 +277,12 @@ func main() {
 	if courtErr != nil {
 		logrus.Infof("No courts are available")
 
-		logrus.Infof("Uploading File")
-		err := uploadFile(BUCKET_NAME, formattedDate, "images/court_booking.png")
-		if err != nil {
-			logrus.Errorf("Error uploading file: %v", err)
+		if !dryRun {
+			logrus.Infof("Uploading File")
+			err := uploadFile(BUCKET_NAME, formattedDate, "images/court_booking.png")
+			if err != nil {
+				logrus.Errorf("Error uploading file: %v", err)
+			}
 		}
 		return
 	}
@@ -233,12 +292,12 @@ func main() {
 		return
 	}
 
-	page.MustSearch(BOOK_SESSION_BTN).MustClick()
-	logrus.Infof("Court %v has been booked for %v:00", courtNumber, startTime)
-	page.Timeout(time.Second * 8).MustSearch(COURT_RESERVED_TEXT)
-
-	fileErr := uploadFile(BUCKET_NAME, formattedDate, "images/court_booked.png")
-	if fileErr != nil {
-		logrus.Errorf("Error uploading file: %v", err)
+	err = rod.Try(func() {
+		page.MustSearch(BOOK_SESSION_BTN).MustClick()
+		logrus.Infof("Court %v has been booked for %v:00", courtNumber, startTime)
+		page.Timeout(time.Second * 8).MustSearch(COURT_RESERVED_TEXT)
+	})
+	if err != nil {
+		logrus.Errorf("Error booking court: %v", err)
 	}
 }
