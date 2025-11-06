@@ -207,6 +207,7 @@ func chooseCourt(page *rod.Page) (court int, err error) {
 			courtElement.MustWaitVisible()
 			err := rod.Try(func() {
 				courtElement.MustClick()
+				page.MustSearch(BOOK_SESSION_BTN).MustWaitVisible()
 			})
 			if err != nil {
 				logrus.Debugf("Could not click court %v. Skipping...", court)
@@ -242,6 +243,25 @@ func main() {
 				_ = rod.Try(func() { page.MustScreenshot("images/panic.png") })
 			} else {
 				logrus.Info("Page is nil")
+			}
+
+			date, err := getCurrentTimeInTimezone(TIMEZONE)
+			if err != nil {
+				logrus.Errorf("failed to get current time: %v", err)
+			}
+			formattedDate := date.Format("Monday - 02-01-06")
+
+			files, err := os.ReadDir("images")
+			if err != nil {
+				logrus.Errorf("failed to read images directory: %v", err)
+			}
+
+			for _, file := range files {
+				filePath := fmt.Sprintf("images/%s", file.Name())
+				err := uploadFile(BUCKET_NAME, formattedDate, filePath)
+				if err != nil {
+					logrus.Errorf("failed to upload file %s: %v", filePath, err)
+				}
 			}
 
 			// best-effort close browser
