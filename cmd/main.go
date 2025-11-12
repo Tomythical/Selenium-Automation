@@ -20,7 +20,7 @@ const (
 	NEXT_WEEK_BTN            = "fa-angle-double-right"
 	NEXT_DAY_BTN             = "fa-angle-right"
 	DATE_PICKER              = "hasDatepicker"
-	BOOK_SESSION_BTN         = "ui-area-btn-success"
+	BOOK_SESSION_BTN         = "btn-save"
 	LOADING_TEXT             = "#wrapper"
 	COURT_RESERVED_TEXT      = "Reservation created successfully"
 	ADVANCED_BOOKING_OVERLAY = "advance-booking-overlay-container"
@@ -94,7 +94,6 @@ func navigateToDate(page *rod.Page) {
 	if err != nil {
 		logrus.Errorf("Error waiting for clock: %v", err)
 	}
-	page.MustScreenshot("images/loading.png")
 
 	sleepCount := 0
 
@@ -245,24 +244,7 @@ func main() {
 				logrus.Info("Page is nil")
 			}
 
-			date, err := getCurrentTimeInTimezone(TIMEZONE)
-			if err != nil {
-				logrus.Errorf("failed to get current time: %v", err)
-			}
-			formattedDate := date.Format("Monday - 02-01-06")
-
-			files, err := os.ReadDir("images")
-			if err != nil {
-				logrus.Errorf("failed to read images directory: %v", err)
-			}
-
-			for _, file := range files {
-				filePath := fmt.Sprintf("images/%s", file.Name())
-				err := uploadFile(BUCKET_NAME, formattedDate, filePath)
-				if err != nil {
-					logrus.Errorf("failed to upload file %s: %v", filePath, err)
-				}
-			}
+			uploadScreenshots(BUCKET_NAME, TIMEZONE)
 
 			// best-effort close browser
 			if browser != nil {
@@ -277,6 +259,8 @@ func main() {
 	browser = rod.New().MustConnect().NoDefaultDevice().Timeout(time.Second * 300).Trace(true)
 	defer func() {
 		if err := browser.Close(); err != nil {
+			page.MustScreenshot("images/context_timeout.png")
+			uploadScreenshots(BUCKET_NAME, TIMEZONE)
 			logrus.Errorf("Error closing browser: %v", err)
 		}
 	}()
@@ -313,11 +297,14 @@ func main() {
 	}
 
 	err = rod.Try(func() {
+		logrus.Debugf("Reach Booking Page")
+		page.MustScreenshot("images/booking_screen.png")
 		page.MustSearch(BOOK_SESSION_BTN).MustClick()
 		logrus.Infof("Court %v has been booked for %v:00", courtNumber, startTime)
 		page.Timeout(time.Second * 8).MustSearch(COURT_RESERVED_TEXT)
 	})
 	if err != nil {
 		logrus.Errorf("Error booking court: %v", err)
+		uploadScreenshots(BUCKET_NAME, TIMEZONE)
 	}
 }

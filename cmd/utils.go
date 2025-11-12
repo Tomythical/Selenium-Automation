@@ -79,3 +79,24 @@ func uploadFile(bucket, folder, filePath string) error {
 	logrus.Infof("File %s uploaded to bucket %s as %s\n", filePath, bucket, objectName)
 	return nil
 }
+
+func uploadScreenshots(bucket, timezone string) {
+	date, err := getCurrentTimeInTimezone(timezone)
+	if err != nil {
+		logrus.Errorf("failed to get current time: %v", err)
+	}
+	formattedDate := date.Format("Monday - 02-01-06")
+
+	files, err := os.ReadDir("images")
+	if err != nil {
+		logrus.Errorf("failed to read images directory: %v", err)
+	}
+
+	for _, file := range files {
+		filePath := fmt.Sprintf("images/%s", file.Name())
+		err := uploadFile(bucket, formattedDate, filePath)
+		if err != nil {
+			logrus.Errorf("failed to upload file %s: %v", filePath, err)
+		}
+	}
+}
