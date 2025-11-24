@@ -138,20 +138,45 @@ func navigateToDate(page *rod.Page) {
 		logrus.Debug("Clicking Next Week")
 		err := rod.Try(func() {
 			page.MustSearch(NEXT_WEEK_BTN).MustParent().MustClick()
+
+			// To debug flaky issues like this, you can add more detailed logging and artifacts:
+			// 1. Log precise timestamps: logrus.Debugf("Clicked at %v", time.Now())
+			// 2. Take screenshots: page.MustScreenshot("images/after-click.png")
+			// 3. Check the browser's Network tab in devtools to see if a request is slow.
+
+			// The flakiness is likely due to an AJAX call updating the calendar.
+			// We will now wait for the loading spinner to appear and then disappear.
+			// This selector is a guess for a common loading spinner in JSF/PrimeFaces.
+			// If the script is still flaky, inspect the page to find the correct selector.
+			const loadingSelector = "div.ui-icon-loading"
+
+			// Wait for the loading spinner to appear. A short timeout is fine.
+			// If it doesn't appear, the page may have loaded too fast to see it.
+			if spinner, err := page.Timeout(3 * time.Second).Element(loadingSelector); err == nil {
+				logrus.Debug("Loading indicator appeared. Waiting for it to disappear.")
+				spinner.MustWaitInvisible() // Wait for it to disappear (default timeout).
+				logrus.Debug("Loading indicator disappeared.")
+			} else {
+				logrus.Debug("Loading indicator did not appear, assuming fast load and continuing.")
+			}
 		})
 		if err != nil {
-			logrus.Errorf("Error clicking next week button: %v", err)
+			// If the error happens here, it could be a timeout from MustWaitInvisible.
+			logrus.Errorf("Error clicking or waiting for next week button to load: %v", err)
+			page.MustScreenshot("images/next-week-load-error.png")
 		}
 
+		// Wait for the date picker to update to the expected weekAhead date
 		jsCondition := fmt.Sprintf(`() => {
         const el = document.querySelector('[class*="%s"]');
         return el && el.value === "%s";
       }`, DATE_PICKER, weekAhead)
 		err = rod.Try(func() {
-			page.MustSearch(DATE_PICKER).MustWait(jsCondition)
+			page.Timeout(10 * time.Second).MustSearch(DATE_PICKER).MustWait(jsCondition)
 		})
 		if err != nil {
-			logrus.Errorf("Error waiting for date picker: %v", err)
+			logrus.Errorf("Error waiting for date picker after clicking Next Week: %v", err)
+			page.MustScreenshot("images/next_week_datepicker_timeout.png")
 		}
 		page.MustScreenshot("images/court_booking.png")
 
@@ -164,11 +189,18 @@ func navigateToDate(page *rod.Page) {
 		if err != nil {
 			logrus.Errorf("Error clicking next day button: %v", err)
 		}
+		// Wait for the date picker to update to the expected tomorrow date
 		jsCondition := fmt.Sprintf(`() => {
         const el = document.querySelector('[class*="%s"]');
         return el && el.value === "%s";
       }`, DATE_PICKER, tomorrow)
-		page.MustSearch(DATE_PICKER).MustWait(jsCondition)
+		err = rod.Try(func() {
+			page.Timeout(60 * time.Second).MustSearch(DATE_PICKER).MustWait(jsCondition)
+		})
+		if err != nil {
+			logrus.Errorf("Error waiting for date picker after clicking Next Day: %v", err)
+			page.MustScreenshot("images/next_day_datepicker_timeout.png")
+		}
 		page.MustScreenshot("images/court_booking.png")
 		logrus.Debugf("Current Day: %v", page.MustSearch(DATE_PICKER).MustText())
 	}
